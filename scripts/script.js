@@ -31,15 +31,18 @@ $(document).ready(function() {
     var generateOptions = function(element, selection) {
         var options = '';
 		
-		if(selection === 'shoe_name' || selection === 'shoe_category' || selection === 'shoe_color')
+		var fields = selection.split('|');
+		var attribute_code = fields[0];
+		var attribute_type = fields[1];
+		
+		if(attribute_type === 'text')
 		{
 			options += '<option value="like%">%Like%</option>';
 			options += '<option value="like">Like</option>';
 			options += '<option value="not_like">NOT LIKE</option>'; 
 			options += '<option value="regexp">REGEXP</option>'; 
 			options += '<option value="not_regexp">NOT REGEXP</option>'; 
-		}
-		if(selection === 'shoe_size' || selection === 'shoe_price')
+		}else if(attribute_type === 'number')
 		{
 			options += '<option value="=">Equal</option>';
 			options += '<option value=">">Greater Then</option>';
@@ -61,10 +64,9 @@ $(document).ready(function() {
     var selection = '';
 
     firstDropDown.on('change', function() {
-
-	
+		
         firstSelection = firstDropDown.val();
-
+		
         clearDropDown($('select'), 1);
 
         disableDropDown($('select'), 1);
@@ -97,8 +99,16 @@ $(document).ready(function() {
 	
 	$('#searchForm').submit(function(event) {
 		event.preventDefault();
+		$('#refreshTable').append('');
+		var refreshHtml = '';
+		console.log('before ajax==');
+		console.log(refreshHtml);
 		
-		 $.ajax({
+		
+		console.log('search from data====');
+		console.log($("#searchForm").serialize());
+		
+		$.ajax({
 			type: "POST",
 			url: "edit.php",
 			dataType: 'json',
@@ -108,48 +118,17 @@ $(document).ready(function() {
 				console.log(data.status);
 				if(data.status==true)
 				{
-					console.log('after data status true');
-					console.log(data);
-					var trHTML = '';
-					$('#shoetable > tbody').html(trHTML);
-					$.each(data.message, function(i){
-						
-						trHTML += "<tr><td><input type='checkbox' class='checkthis' /></td><td>" + data.message[i].shoe_name + "</td><td>" + data.message[i].shoe_category + "</td><td>" + data.message[i].shoe_color + "</td><td>" + data.message[i].shoe_size + "</td><td>" + data.message[i].shoe_price +"</td><td> <p data-placement='top' data-toggle='tooltip' title='Edit'><button onclick='editProductDetails("+ data.message[i].id +")' class='btn btn-primary btn-xs' data-title='Edit' data-toggle='modal' data-target='#edit' ><span class='glyphicon glyphicon-pencil'></span></button></p> </td><td><p data-placement='top' data-toggle='tooltip' title='Delete'><button onclick='assignDeleteProductId("+ data.message[i].id +")' class='btn btn-danger btn-xs' data-title='Delete' data-toggle='modal' data-target='#delete' ><span class='glyphicon glyphicon-trash'></span></button></p> </td></tr>";
-					});
-					var refreshHtml = "<a href='javascript:void(0)' onclick='refreshTable()'>Refresh Table</a>";
-					
+					$("#table-responsive").empty();
+					$("#table-responsive").css('margin-top', '20px');
+					$('#table-responsive').append(data.message); 
+					$('#search').modal('hide'); 
+					refreshHtml = "<a href='javascript:void(0)' onclick='refreshTable()'>Refresh Table</a>";
 					$('#refreshTable').append(refreshHtml); 
-					$('#shoetable > tbody').append(trHTML);
-					$('#search').modal('hide');
-					
 				}else{
 					alert(data.message);
 				}
 			}
-		});
+		}); 
 	});
-	
-	
-	
-	$("#mytable #checkall").click(function () {
-		if ($("#mytable #checkall").is(':checked')) {
-			$("#mytable input[type=checkbox]").each(function () {
-				$(this).prop("checked", true);
-			});
-
-		} else {
-			$("#mytable input[type=checkbox]").each(function () {
-				$(this).prop("checked", false);
-			});
-		}
-	});
-	
-	$("[data-toggle=tooltip]").tooltip();
-	
-	
-  
-  
-  
-	
 	
 });

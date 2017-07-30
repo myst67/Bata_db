@@ -12,79 +12,140 @@ if(!isset($_SESSION))
 include('model.php'); // call db.class.php
 $dbModel = new db();
 
-if($_POST['type'] === 'create')
+if($_POST['type'] === 'createProduct')
 {
-	$validateData = $dbModel->validate($_POST);
-	if($validateData['success'] == false)
+	$attrSet = $_POST['attr_set'];
+	unset($_POST['attr_set']);
+	unset($_POST['type']);
+	
+	$sku = $attrSet.'-'.substr(time(),6);
+	
+	$entityId = $dbModel->execute("INSERT INTO eav_entity (attribute_set,sku) VALUES ('$attrSet', '$sku')");
+	
+	foreach($_POST as $k=>$value)
 	{
-		echo json_encode(array('status' => false,'message'=> $validateData['msg']));
-		
-	}else{
-		$shoe_name = $_POST['shoe_name'];
-		$shoe_category = $_POST['shoe_category'];
-		$shoe_color = $_POST['shoe_color'];
-		$shoe_size = $_POST['shoe_size'];
-		$shoe_price = $_POST['shoe_price'];
-		
-		$query = $dbModel->execute("INSERT INTO $currentTable (shoe_name,shoe_category,shoe_color,shoe_size,shoe_price) VALUES ('$shoe_name', '$shoe_category', '$shoe_color','$shoe_size','$shoe_price')");
-		
-		if(!$query)
-		{
-			echo json_encode(array('status' => false,'message'=> 'Not Able to insert query, please go through the log details..'));
-		}else{
-			
-			$product = $dbModel->fetchOneProduct($query);
-			if(!$product)
-			{
-				echo json_encode(array('status' => false,'message'=> 'Not Able to fetch data from current query, please go through the log details..'));
-			}else{
-				echo json_encode(array('status' => true,'message'=> $product));
-			}
-		}
+		$query = "INSERT INTO eav_value (entity_id,attribute_id,value) VALUES ('$entityId', '$k', '$value')";
+		$dbModel->execute($query);
 	}
+	
+	echo json_encode(array('status' => true,'message'=> 'product created successfully !'));
+	
 }elseif($_POST['type'] === 'edit')
 {
-	$editData = Array();
+	$editData =$_POST;
 	
-	$id = $_POST['id'];
-	$editData['shoe_name'] = $_POST['edit_shoe_name'];
-	$editData['shoe_category'] = $_POST['edit_shoe_category'];
-	$editData['shoe_color'] = $_POST['edit_shoe_color'];
-	$editData['shoe_size'] = $_POST['edit_shoe_size'];
-	$editData['shoe_price'] = $_POST['edit_shoe_price'];
+	/* echo '<pre>';
+	print_r($editData);
+	echo '</pre>'; */
 	
-	$shoe_name = $_POST['edit_shoe_name'];
-	$shoe_category = $_POST['edit_shoe_category'];
-	$shoe_color = $_POST['edit_shoe_color'];
-	$shoe_size = $_POST['edit_shoe_size'];
-	$shoe_price = $_POST['edit_shoe_price'];
+	$entity_id = $editData['pid'];
+	unset($editData['pid']);
+	unset($editData['type']);
 	
-	$validateData = $dbModel->validate($editData);
-	
-	if($validateData['success'] == false)
+	foreach($editData as $id=>$data)
 	{
-		echo json_encode(array('status' => false,'message'=> $validateData['msg']));
-	}else{
-		$query = $dbModel->execute("UPDATE $currentTable SET shoe_name='$shoe_name', shoe_category='$shoe_category', shoe_color='$shoe_color', shoe_size='$shoe_size', shoe_price='$shoe_price' WHERE id='$id'");
-		echo json_encode(array('status' => true,'message'=> 'data has been updated successfully.'));
+		$isIdExist = "SELECT value_id from eav_value WHERE attribute_id='$id' AND entity_id='$entity_id'";
+		if(!empty($dbModel->getOne($isIdExist)))
+		{
+			$sql = "UPDATE eav_value SET value='$data' WHERE attribute_id='$id' AND entity_id='$entity_id'";
+			$query = $dbModel->execute($sql);
+		}else{
+			$sql = "INSERT INTO eav_value (attribute_id,value,entity_id) VALUES ('$id', '$data', '$entity_id')";
+			$query = $dbModel->execute($sql);
+		}
 	}
+	
+	$msg = "Product id: $entity_id has been updated";
+	echo json_encode(array('status' => true,'message'=> $msg));
+	
 }elseif($_POST['type'] === 'createTable')
 {
-	$editData = Array();
 	
-	$table_name = $_POST['table_name'];
-	$queryString = "CREATE TABLE IF NOT EXISTS `Bata_Schema`.`$table_name` (
-		  `id` INT NOT NULL AUTO_INCREMENT,
-		  `shoe_name` VARCHAR(45) NULL,
-		  `shoe_category` VARCHAR(45) NULL,
-		  `shoe_color` VARCHAR(45) NULL,
-		  `shoe_size` INT(20) NULL,
-		  `shoe_price` INT(20) NULL,
-		  PRIMARY KEY (`id`))
-		ENGINE = InnoDB;";
-	$query = $dbModel->execute($queryString);
+	$arr = $_POST;
+	
+	$attrSet = $arr['attr_set_name'];
+	$isSetExist = $dbModel->isIdExistInTable($selct='entity_id',$attrSet,'attribute_set',$table='eav_entity');
+	
+	if($isSetExist)
+	{
+		$msg = 'Attribute Set: ('.$attrSet.') is already exist! try with different one!';
+		echo json_encode(array('status' => false,'message'=> $msg));
+		exit;
+	}
+	
+	$sku = $attrSet.'-'.substr(Time(),5);
+	
+	$sql = "INSERT INTO eav_entity (attribute_set,sku) VALUES ('$attrSet', '$sku')";
+	$entity_id = $dbModel->execute($sql);
+	
+	unset($arr['attr_set_name']);
+	unset($arr['type']);
+	
+	
+	
+	$attLen = count($arr)/3;
+	$queryString = '';
+	for($j=$attLen;$j>=1;$j--)
+	{
+		$attribute_codee = $arr["tb_code_$j"];
+		$attribute_type = $arr["tb_type_$j"];
+		$attribute_label = $arr["tb_label_$j"];
+		
+		$isIdExist = $dbModel->isIdExistInTable($selct='attribute_id',$attribute_codee,$attribute_code='attribute_code',$table='eav_attribute');
+		if(!$isIdExist)
+		{
+			$queryString = "INSERT INTO `eav_attribute` (attribute_set,attribute_code,attribute_type,attribute_label) VALUES ('$attrSet', '$attribute_codee','$attribute_type', '$attribute_label')";
+			$dbModel->execute($queryString);
+			
+		}else{
+			$msg = $attribute_codee.' : is already exist! try with different one!';
+			echo json_encode(array('status' => false,'message'=> $msg));
+			exit;
+		}
+		
+		
+	}
 	
 	echo json_encode(array('status' => true,'message'=> 'table has been created successfully.'));
+	
+}elseif($_POST['type'] === 'showAttribute')
+{
+	
+	$arr = $_POST;
+	$sttrSetName = $arr['set'];
+	$attrDetails = $dbModel->getAll("SELECT attribute_id,attribute_code,attribute_type,attribute_label FROM `eav_attribute` WHERE `attribute_set` = '$sttrSetName' ORDER BY `attribute_id` DESC ");
+	
+	/* echo '<pre>';
+	print_r($attrDetails);
+	echo '</pre>'; */
+	
+	echo json_encode(array('status' => true,'data'=> $attrDetails));
+}elseif($_POST['type'] === 'editAttribute')
+{
+	$arr = $_POST;
+	$sttrSetName = $arr['set'];
+	
+	$attrDetails = $dbModel->getAll("SELECT attribute_id,attribute_type,attribute_label FROM `eav_attribute` WHERE `attribute_set` = '$sttrSetName' ORDER BY `attribute_id` DESC ");
+	
+	$html = "";
+	foreach($attrDetails as $att)
+	{
+		$attId = $att['attribute_id'];
+		
+		$html .="<tr id='editAttrTr-$attId'><td><input type='text' disabled class='form-control' name='".$att['attribute_id']."' id='attrText-".$att['attribute_id']."' value='".$att['attribute_label']."'></td><td><select disabled required id='attrSelect-".$att['attribute_id']."' name='".$att['attribute_id']."'>";
+		
+		if($att['attribute_type'] == 'text')
+		{
+			$html .="<option selected value='text'>Text</option><option value='number'>Number</option>";
+		}else{
+			$html .="<option value='text'>Text</option><option selected value='number'>Number</option>";
+		}
+		
+		$html .="</select></td><td><p style='float:left' title='Edit'><a href='javascript:void(0)' id='editAttribute-$attId' class='' onclick='editProductAttribute($attId)' ><span class='glyphicon glyphicon-pencil'></span></a></p><p style='display:none;margin-left: 14px;' id='updateAttr-$attId'><a href='javascript:void(0)' onclick='updateAttribute($attId)'>Update</a></p>
+		</td><td><p title='Delete'><a href='javascript:void(0)' id='deleteAttribute-$attId' class='' onclick='deleteProductAttribute($attId)' ><span class='glyphicon glyphicon-trash'></span></a></p></td></tr>";
+	}
+	
+	echo json_encode(array('status' => true,'msg'=> $html));
 }
 
 
