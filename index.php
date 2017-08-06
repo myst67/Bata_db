@@ -8,7 +8,7 @@ $dbModel->execute('CREATE SCHEMA IF NOT EXISTS `Bata_Schema`');
 $dbModel->execute('USE `Bata_Schema`');
 $dbModel->createInitialTables();
 
-$attrSet = $dbModel->getTotalAttributeSet();
+$attrSet = null;//$dbModel->getTotalAttributeSet();
 ?>
 <div class="menu">
     <div class="container-fluid">
@@ -17,7 +17,7 @@ $attrSet = $dbModel->getTotalAttributeSet();
 		</div>
 		<div style="float:right">
 			<ul class="nav navbar-nav navbar-right">
-				<li><a href="http://localhost/bata/dashboard.php" >Show Data Table</a></li>
+				<li><a href="http://localhost/bata/dashboard.php" >Show Product Table</a></li>
 			</ul>
 		</div>
 	</div>
@@ -25,270 +25,127 @@ $attrSet = $dbModel->getTotalAttributeSet();
 
 <div class="container">    
 	
-	<div class="attribute-data">
-		
-	
-	<div id="attr_edit_data">
-		<?php if(!empty($attrSet)){?>
-		<h2>Edit Exist Atribute By Set</h2>
-		<div class="form-group">
-		  <label for="attr_edit_set">Select Attribute Set:</label>
-		  <select class="form-control" id="attr_edit_set" name="attr_edit_set">
-			<option value="">----</option>
-			<?php foreach($attrSet as $set){?>
-			<option value="<?php echo $set['attribute_set']?>"><?php echo $set['attribute_set'] ?></option>
-			<?php } ?>
-		  </select>
-		</div>
-		<table class="table table-bordred table-striped" id="att-table"  style="display:none">
-			<thead>
-				<th>Attribute Label</th>
-				<th>Attribute Type</th>
-				<th>Attribute Edit</th>
-				<th>Attribute Delete</th>
-			</thead>
-			<tbody>
-			</tbody>
-		</table>
-		<form id="updateAttributeForm" style="display:none" enctype="multipart/form-data">	
-			<input type="hidden" id="update-attribute-set" name="set" value="">
-			<div>
-				<h3> Add attribute and Type : <span id="attExistSet"></span></h3>
-				<p>
-					<a href="javascript:void(0);" onclick="addAttributeElement();">Add</a>
-					<a href="javascript:void(0);" onclick="removeAttributeElement();">Remove</a>
-				</p>
-				<div id="tableAttribute" ></div>
-			</div>
-			<input type="hidden" name="type" value="updateAttributeForm">
-			<button type="submit" class="btn btn-default">Update</button>
-		</form>
-		<?php } ?>
-	</div>
-	</div>
-	
 	<div class="newTableForm">
-		<h2>Create New Atribute Set</h2>
+		<h2>Create New Product</h2>
 		<form id="createTableForm">
-			<div class="form-group">
-				<label for="attr_set_name">Set Name</label>
-				<input type="text" class="form-control" name="attr_set_name" id="attr_set_name">
-			</div>
-			<h3> Add attribute and Type : <span id="attSet"></span></h3>
+			<h3> Add Product Property and value : <span id="attSet"></span></h3>
 			<p>
 				<a href="javascript:void(0);" onclick="addElement();">Add</a>
 				<a href="javascript:void(0);" onclick="removeElement();">Remove</a>
 			</p>
 			<div id="tableAttr" ></div>
-		  <input type="hidden" name="type" value="createTable">
+		  <input type="hidden" name="type" value="createProduct">
 		  <button type="submit" id="createSetButton" class="btn btn-default" disabled="disabled">Submit</button>
+		  <button type="button" onclick="showProductProperty()" data-title="create" data-toggle="modal" data-target="#create" id="viewProperty" class="btn btn-default" style="display:none">View</button>
 		</form>
+	</div>
+	
+	<div class="modal fade" id="create" tabindex="-1" role="dialog" aria-labelledby="create" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
+					<h4 class="modal-title custom_align" id="Heading">View Product Properties</h4>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 
 <script>
-	$(document).ready(function() {
+	
+	var intTextBox = 0;
+	function addElement() {
+		intTextBox++;
+		if(intTextBox >= 1)
+		{
+			$('#createSetButton').attr('disabled', false);
+			$('#viewProperty').show();
+		}
+		var objNewDiv = document.createElement('div');
+		objNewDiv.setAttribute('id', 'div_' + intTextBox);
+		objNewDiv.setAttribute('style', 'padding-bottom:5px');
+		objNewDiv.innerHTML = '<span>Product Property</span>' + ': <input type="text" required id="property_code_' + intTextBox + '" name="property_code_' + intTextBox + '"/>';
+		objNewDiv.innerHTML += '<span>Property Value</span>' + ': <input type="text" required id="property_value_' + intTextBox + '" name="property_value_' + intTextBox + '"/>';
+		objNewDiv.innerHTML += "<span>Property Value Type</span> " + ": <select required id='property_type_"+intTextBox+"' name='property_type_"+intTextBox+"'><option value='number'>Number</option><option value='string'>String</option></select>";
 		
-		$('#attr_set_name').change(function () {
-			$('#attSet').html($('#attr_set_name').val());
-		});
+		document.getElementById('tableAttr').appendChild(objNewDiv);
+	}
+	
+	
+	function removeElement() {
 		
-		$('#attr_edit_set').on('change', function() {
-			$('#att-table > tbody').empty();
-			$('#attExistSet').html(this.value);
-			$('#update-attribute-set').val(this.value);
-			$.ajax({
+		if(0 < intTextBox) {
+			document.getElementById('tableAttr').removeChild(document.getElementById('div_' + intTextBox));
+			if(intTextBox <= 1)
+			{
+				$('#createSetButton').attr('disabled', true);
+				$('#viewProperty').hide();
+			}
+			intTextBox--;
+		} else {
+			alert("No textbox to remove");
+		}
+	}
+	function hasWhiteSpace(s) {
+	  return /\s/g.test(s);
+	}
+	
+	function showProductProperty()
+	{
+		var i=1;
+		$(':input', '#createTableForm').each(function() {
+			console.log(this);
+			
+			if(this.name !== 'type')
+			{
+				console.log(this.value+':'+this.value);
+			}
+			//console.log(this.value);
+            
+        });
+	}
+	$('#createTableForm').submit(function(event) {
+		
+		console.log('before submit====');
+		
+		var form = $('#createTableForm').prop('elements');
+		var i = 1;
+		var validation = true;
+		$(':input', '#createTableForm').each(function() {
+			var aa = 'property_code_'+i;
+			if(this.id == aa)
+			{
+				if(hasWhiteSpace(this.value))
+				{
+					alert('Attribute name should not contain any space');
+					validation = false;
+					return false;
+				}
+				i=i+1;
+			}
+            
+        });
+		event.preventDefault();
+		if(validation === true)
+		{
+			var formdata = $("#createTableForm").serialize();
+			 $.ajax({
 				type: "POST",
 				url: "create.php",
 				dataType: 'json',
-				data: {"set": this.value,"type":'editAttribute'},
-				success: function(data){
-					if(data.status==true)
+				data: $("#createTableForm").serialize(),
+				success: function(res){
+					if(res.status===true)
 					{
-						$('#att-table > tbody').append(data.msg);
-						$('#att-table').css('display', 'table');
-						$('#updateAttributeForm').css('display', 'inline-block');
-					}else{
-						alert(data.message);
-					}
-				}
-			});
-		})
-	});
-		
-	$('#updateAttributeForm').submit(function(event) {
-		
-		event.preventDefault();
-		if(!$('#update-attribute-set').val())
-		{
-			console.log('Attribute set name is required while updating');
-			return false;
-		}else{
-			var formdata = $("#updateAttributeForm").serialize();
-			$.ajax({
-				type: "POST",
-				url: "edit.php",
-				dataType: 'json',
-				data: formdata,
-				success: function(data){
-					if(data.status==true)
-					{
-						alert(data.message);
-						window.location.reload();
-					}else{
-						alert(data.message);
+						alert(res.message);
+						window.location.href="http://localhost/bata/index.php";
+					}else if(res.status==false){
+						alert(res.message);
 					}
 				}
 			});
 		}
 	  });
 	
-	function editProductAttribute(id)
-	{
-		var idTextField = "#attrText-"+id;
-		var idSelectField = "#attrSelect-"+id;
-		var idUpdateField = "#updateAttr-"+id;
-		$(idTextField).prop( "disabled", false );
-		$(idSelectField).prop( "disabled", false );
-		$(idUpdateField).css('display', 'inline-block');
-	}
-	
-	function deleteProductAttribute(id)
-	{
-		$.ajax({
-			type: "POST",
-			url: "edit.php",
-			dataType: 'json',
-			data: {"id":id,"type":'deleteAttribute'},
-			success: function(data){
-				if(data.status==true)
-				{
-					alert(data.message);
-					var tableRow = '#editAttrTr-'+id;
-					$(tableRow).remove();
-				}else{
-					alert(data.message);
-				}
-			}
-		  });
-		  
-	}
-	
-	function updateAttribute(id)
-	{
-		var idTextField = "#attrText-"+id;
-		var idSelectField = "#attrSelect-"+id;
-		
-		var textFieldValue=$(idTextField).val();
-		var selectFieldValue=$(idSelectField).val();
-		
-		$.ajax({
-			type: "POST",
-			url: "edit.php",
-			dataType: 'json',
-			data: {"id":id,"type":'editAttribute',"attrLbl": textFieldValue,"attrType":selectFieldValue},
-			success: function(data){
-				if(data.status==true)
-				{
-					alert(data.message);
-					var idTextField = "#attrText-"+id;
-					var idSelectField = "#attrSelect-"+id;
-					var idUpdateField = "#updateAttr-"+id;
-					$(idTextField).prop( "disabled", true );
-					$(idSelectField).prop( "disabled", true );
-					$(idUpdateField).css('display', 'none');
-					
-				}else{
-					alert(data.message);
-				}
-			}
-		  });
-		  
-		  
-		console.log(textFieldValue);
-		console.log(selectFieldValue);
-	}
-	
-	
-	  
-	  $('#createTableForm').submit(function(event) {
-		
-		if(!$('#attr_set_name').val())
-		{
-			alert('table name should not be empty');
-			return false;
-		}
-		event.preventDefault();
-		var formdata = $("#createTableForm").serialize();
-		 $.ajax({
-			type: "POST",
-			url: "create.php",
-			dataType: 'json',
-			data: $("#createTableForm").serialize(),
-			success: function(res){
-				if(res.status===true)
-				{
-					console.log(res);
-					window.location.href="http://localhost/bata/dashboard.php";
-				}else if(res.status==false){
-					alert(res.message);
-				}
-			}
-		  });
-	  });
-	  
-		var intTextBox = 0;
-		function addElement() {
-			intTextBox++;
-			if(intTextBox >= 1)
-			{
-				$('#createSetButton').attr('disabled', false);
-			}
-			var objNewDiv = document.createElement('div');
-			objNewDiv.setAttribute('id', 'div_' + intTextBox);
-			objNewDiv.setAttribute('style', 'padding-bottom:5px');
-			objNewDiv.innerHTML = 'Attribute Code ' + ': <input type="text" required id="tb_code_' + intTextBox + '" name="tb_code_' + intTextBox + '"/>';
-			objNewDiv.innerHTML += 'Attribute Label ' + ': <input type="text" required id="tb_label_' + intTextBox + '" name="tb_label_' + intTextBox + '"/>';
-			objNewDiv.innerHTML += "Attribute Type " + ": <select required id='tb_type_"+intTextBox+"' name='tb_type_"+intTextBox+"'><option value='text'>Text</option><option value='number'>Number</option></select>";
-			
-			document.getElementById('tableAttr').appendChild(objNewDiv);
-		}
-		
-		
-		function removeElement() {
-			
-			if(0 < intTextBox) {
-				document.getElementById('tableAttr').removeChild(document.getElementById('div_' + intTextBox));
-				if(intTextBox <= 1)
-				{
-					$('#createSetButton').attr('disabled', true);
-				}
-				intTextBox--;
-			} else {
-				alert("No textbox to remove");
-			}
-		}
-		
-		var intAttributeTextBox = 0;
-		function addAttributeElement() {
-			intAttributeTextBox++;
-			var objAttributeNewDiv = document.createElement('div');
-			objAttributeNewDiv.setAttribute('id', 'div_' + intAttributeTextBox);
-			objAttributeNewDiv.setAttribute('style', 'padding-bottom:5px');
-			objAttributeNewDiv.innerHTML = 'Attribute Code ' + ': <input type="text" required id="tb_code_' + intAttributeTextBox + '" name="tb_code_' + intAttributeTextBox + '"/>';
-			objAttributeNewDiv.innerHTML += 'Attribute Label ' + ': <input type="text" required id="tb_label_' + intAttributeTextBox + '" name="tb_label_' + intAttributeTextBox + '"/>';
-			objAttributeNewDiv.innerHTML += "Attribute Type " + ": <select required id='tb_type_"+intAttributeTextBox+"' name='tb_type_"+intAttributeTextBox+"'><option value='text'>Text</option><option value='number'>Number</option></select>";
-			
-			document.getElementById('tableAttribute').appendChild(objAttributeNewDiv);
-		}
-		
-		
-		function removeAttributeElement() {
-			if(0 < intAttributeTextBox) {
-				document.getElementById('tableAttribute').removeChild(document.getElementById('div_' + intAttributeTextBox));
-				intAttributeTextBox--;
-			} else {
-				alert("No textbox to remove");
-			}
-		}
 </script>

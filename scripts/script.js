@@ -97,7 +97,7 @@ $(document).ready(function() {
     });
 	
 	
-	$('#searchForm').submit(function(event) {
+	/* $('#searchForm').submit(function(event) {
 		event.preventDefault();
 		$('#refreshTable').append('');
 		var refreshHtml = '';
@@ -129,6 +129,6 @@ $(document).ready(function() {
 				}
 			}
 		}); 
-	});
+	}); */
 	
 });

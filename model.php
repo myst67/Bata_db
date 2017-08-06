@@ -57,7 +57,7 @@ class db {
 		}
 	}
 	
-	function getOne($query) { 
+	function getOne($query) {
 		$cnx = $this->conn;
 		if (!$cnx || $this->status_fatal) {
 			echo 'GetOne -> Connection BDD failed';
@@ -82,7 +82,7 @@ class db {
 		return $return;
 	}
 	
-	function getAll($query) { 
+	function getAll($query) {
 		$cnx = $this->conn;
 		if (!$cnx || $this->status_fatal) {
 			echo 'GetAll -> Connection BDD failed';
@@ -101,7 +101,7 @@ class db {
 	}
 	
 	
-	function execute($query,$use_slave=false) { 
+	function execute($query,$use_slave=false) {
 		$cnx = $this->conn;
 		if (!$cnx||$this->status_fatal) {
 			return null;
@@ -132,252 +132,104 @@ class db {
 		}
 	}
 	
-	
-	function fetchOneProduct($id)
-	{
-		$product = $this->getOne("SELECT * FROM $this->currentTable WHERE id = '$id'");
-		return $product;
-	}
-	
-	function getAttributeByProductId($id)
-	{
-		$sql = "SELECT ea.attribute_id as attribute_id,ea.attribute_type as attribute_type,ea.attribute_code as attribute_code, ea.attribute_label as product_attribute, ev.value as prodcut_data FROM eav_value AS ev JOIN eav_attribute AS ea ON (ea.attribute_id = ev.attribute_id) JOIN eav_entity AS en ON (en.entity_id = ev.entity_id) where en.entity_id = '$id'";
-		$attributes = $this->getAll($sql);
-		
-		return $attributes;
-	}
-	
-	function searchProductsByNumber($filterCode,$filterCondition,$filterValue)
-	{
-		$sql = "SELECT en.entity_id as product_id FROM eav_value AS ev JOIN eav_attribute AS ea ON (ea.attribute_id = ev.attribute_id) JOIN eav_entity AS en ON (en.entity_id = ev.entity_id) where ea.attribute_code='$filterCode' AND ev.value $filterCondition '$filterValue'";
-		
-		$products = $this->getAll($sql);
-		if(empty($products))
-		{
-			$result = array("emptyResult"=>true);
-			return $result;
-		}else{
-			$productsArray = $this->searchByProductId($products);
-			return $productsArray;
-		}
-	}
-	
-	function searchByProductId($products)
-	{
-		$searchByProductIdSql = 'SELECT en.entity_id as product_id, en.sku as sku, en.attribute_set as attribute_set, ea.attribute_label as product_attribute, ev.value as prodcut_data FROM eav_value AS ev JOIN eav_attribute AS ea ON (ea.attribute_id = ev.attribute_id) JOIN eav_entity AS en ON (en.entity_id = ev.entity_id) where ';
-		
-		$numItems = count($products);
-		$i = 0;
-		
-		foreach($products as $_product)
-		{
-			$pid = $_product['product_id'];
-			if(++$i === $numItems) 
-			{
-				$searchByProductIdSql .= "en.entity_id = '$pid'";
-			}else{
-				$searchByProductIdSql .= "en.entity_id = '$pid' OR ";
-			}
-		}
-		$productsData = $this->getAll($searchByProductIdSql);
-		
-		return $productsData;
-	}
-	
-	
-	function searchProductsByName($filterCode,$filterCondition,$filterValue)
-	{	
-	
-		$query = '';
-		$sql = "SELECT en.entity_id as product_id FROM eav_value AS ev JOIN eav_attribute AS ea ON (ea.attribute_id = ev.attribute_id) JOIN eav_entity AS en ON (en.entity_id = ev.entity_id) where ea.attribute_code='$filterCode' AND ev.value";
-		
-		switch ($filterCondition) {
-			case "like%":
-				$sql .= " LIKE '%$filterValue%'";
-				break;
-			case "like":
-				$sql .= " LIKE '$filterValue'";
-				break;
-			case "not_like":
-				$sql .= " NOT LIKE '$filterValue'";
-				break;
-			case "regexp":
-				$sql .= " REGEXP '$filterValue'";
-				break;
-			case "not_regexp":
-				$sql .= " NOT REGEXP '$filterValue'";
-				break;
-			default:
-				echo "Youre not select any query";
-		}
-		// echo $sql;
-		
-		$products = $this->getAll($sql);
-		if(empty($products))
-		{
-			$result = array("emptyResult"=>true);
-			return $result;
-		}else{
-			$productsArray = $this->searchByProductId($products);
-			return $productsArray;
-		}
-		
-		
-	}
-	
-	function deleteOneProduct($id)
-	{
-		$sqlEntity = "DELETE FROM eav_entity WHERE entity_id = '$id'";
-		$sqlValue = "DELETE FROM eav_value WHERE entity_id = '$id'";
-		$this->execute($sqlEntity);
-		$this->execute($sqlValue);
-	}
-	
-	function validate($postdata)
-	{
-		$result = Array();
-		$shoe_name = $postdata['shoe_name'];
-		$shoe_color = $postdata['shoe_color'];
-		$shoe_color = $postdata['shoe_color'];
-		$shoe_size = $postdata['shoe_size'];
-		$shoe_price = $postdata['shoe_price'];
-		
-		$result['success'] = true;
-		if($shoe_name == null || empty($shoe_name))
-		{
-			$result['success'] = false;
-			$result['msg'] = 'Shoe name is required field';
-		}
-		if($shoe_color == null || empty($shoe_color))
-		{
-			$result['success'] = false;
-			$result['msg'] = 'shoe category is required field';
-		}
-		if($shoe_size == null || empty($shoe_size))
-		{
-			$result['success'] = false;
-			$result['msg'] = 'Shoe size is required field';
-		}
-		if($shoe_price == null || empty($shoe_price))
-		{
-			$result['success'] = false;
-			$result['msg'] = 'Shoe price is required field';
-		}
-		
-		return $result;
-	}
-	
-	function groupApply($data,$groupBy)
-	{
-		$grouped_types = Array();
-		foreach($data as $set){
-			$grouped_types[$set[$groupBy]][] = $set;
-		}
-		return $grouped_types;
-	}
-	
-	function getProductDetailsInEachSet($set)
-	{
-		$query = "SELECT en.entity_id as product_id, ea.attribute_code as attribute_code, ea.attribute_label as product_attribute, ev.value as prodcut_data FROM eav_value AS ev JOIN eav_attribute AS ea ON (ea.attribute_id = ev.attribute_id) JOIN eav_entity AS en ON (en.entity_id = ev.entity_id) AND ea.attribute_set='$set'";
-		
-		$products = $this->getAll($query);
-		return $products;
-	}
-	
-	function getAllAttributeDetails()
-	{
-		$query = "SELECT distinct attribute_code, attribute_type, attribute_label FROM `eav_attribute`";
-		
-		$attributes = $this->getAll($query);
-		return $attributes;
-	}
-	
-	function getAttributeLengthBySet($set)
-	{
-		$query = "SELECT count(attribute_id) as count FROM `eav_attribute` where attribute_set='$set'";
-		
-		$count = $this->getOne($query);
-		return $count['count'];
-	}
-	
-	function getTotalAttributeSet()
-	{
-		$query = "SELECT distinct attribute_set FROM `eav_attribute`";
-		// $query = "SELECT distinct attribute_code, attribute_type, attribute_label FROM `eav_attribute`";
-		
-		$attributeSet = $this->getAll($query);
-		
-		return $attributeSet;
-	}
-	function getAttributesNotValue($setId,$existAttributes)
-	{
-		$arr = '"'.implode('","', $existAttributes).'"';
-		$sql = "select * from eav_attribute where attribute_code NOT IN ($arr) AND attribute_set = '$setId'";
-		$extraAttributeSet = $this->getAll($sql);
-		
-		return $extraAttributeSet;
-	}
-	
-	function getAllProducts()
-	{
-		$query = "SELECT en.entity_id as product_id, en.sku as sku, ea.attribute_set as set_id, ea.attribute_label as product_attribute, ev.value as prodcut_data FROM eav_value AS ev JOIN eav_attribute AS ea ON (ea.attribute_id = ev.attribute_id) JOIN eav_entity AS en ON (en.attribute_set = ea.attribute_set) GROUP BY en.entity_id, ea.attribute_label";
-		
-		
-		$product = $this->getAll($query);
-		$sroupeSetProducts = $this->groupApply($product,'set_id');
-		return $sroupeSetProducts;
-	}
-	
-	function isIdExistInTable($selct,$value,$attributeId,$table)
-	{
-		
-		$sql = "SELECT $selct from $table WHERE $attributeId='$value'";
-		if(!empty($this->getOne($sql)))
-		{
-			return true;
-		}else{
-			return false;
-		}
-	}
-	
 	function createInitialTables()
 	{
-		$this->execute("CREATE TABLE IF NOT EXISTS `Bata_Schema`.`eav_entity` (
-		  `entity_id` INT NOT NULL AUTO_INCREMENT,
-		  `attribute_set` VARCHAR(45) NOT NULL,
-		  `sku` VARCHAR(45) DEFAULT NULL,
-		  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		  INDEX PRODUCT_ATTRIBUTE_SET_ID USING BTREE (attribute_set),
-		  INDEX PRODUCT_SKU USING BTREE (sku),
-		  UNIQUE(sku),
-		  PRIMARY KEY (`entity_id`)
+		$this->execute("CREATE TABLE IF NOT EXISTS `Bata_Schema`.`att_table` (
+		  `att_id` INT NOT NULL AUTO_INCREMENT,
+		  `attribute_code` VARCHAR(50) NOT NULL,
+		   INDEX PRODUCT_ATTRIBUTE_VALUE USING BTREE (attribute_code(6)),
+		  PRIMARY KEY (`att_id`)
 		  )
 		ENGINE = InnoDB");
 	
 	
-		$this->execute("CREATE TABLE IF NOT EXISTS `Bata_Schema`.`eav_value` (
+		$this->execute("CREATE TABLE IF NOT EXISTS `Bata_Schema`.`value_table` (
 		  `value_id` INT NOT NULL AUTO_INCREMENT,
-		  `entity_id` INT(10) NOT NULL,
-		  `attribute_id` INT(10) NOT NULL,
-		  `value` VARCHAR(255) DEFAULT NULL,
-		  INDEX PRODUCT_ATTRIBUTE_ID USING BTREE (attribute_id),
-		  INDEX PRODUCT_ENTITY_ID USING BTREE (entity_id),
+		  `value_type` varchar(50) NOT NULL,
+		  `value_item` varchar(50) NOT NULL,
+		  INDEX PRODUCT_TYPE_VALUE USING BTREE (value_type,value_item),
 		  PRIMARY KEY (`value_id`)
 		  )
 		ENGINE = InnoDB");
 		
-		$this->execute("CREATE TABLE IF NOT EXISTS `Bata_Schema`.`eav_attribute` (
-		  `attribute_id` INT NOT NULL AUTO_INCREMENT,
-		  `attribute_set` VARCHAR(45) NOT NULL,
-		  `attribute_code` VARCHAR(45) NOT NULL,
-		  `attribute_type` VARCHAR(45) NOT NULL,
-		  `attribute_label` VARCHAR(45) NULL,
-		  INDEX PRODUCT_ATTRIBUTE_SET_CODE USING BTREE (attribute_set,attribute_code),
-		  INDEX PRODUCT_ATTRIBUTE_SET_LABEL USING BTREE (attribute_set,attribute_label),
-		  INDEX PRODUCT_ATTRIBUTE_SET_ID USING BTREE (attribute_set),
-		  UNIQUE(attribute_code),
-		  PRIMARY KEY (`attribute_id`)
+		$this->execute("CREATE TABLE IF NOT EXISTS `Bata_Schema`.`entity_table` (
+		  `en_id` INT NOT NULL AUTO_INCREMENT,
+		  `pro_id` INT(10) NOT NULL,
+		  `att_id` INT(10) NOT NULL,
+		  `value_id` INT(10) NOT NULL,
+		  UNIQUE(`en_id`),
+		  PRIMARY KEY(`pro_id`,`att_id`,`value_id`)
 		  )
 		ENGINE = InnoDB");
+	} 
+	
+	function getAllProducts()
+	{
+		$query = "SELECT distinct entity_table.pro_id as pid FROM entity_table";
+		
+		$products = $this->getAll($query);
+		
+		/* echo '<pre>' ;
+		print_r($products);
+		echo '</pre>' ; */
+		
+		return $products;
+	}
+	
+	function removeProductDetails($pid)
+	{
+		$attQuery = "SELECT att_id FROM entity_table WHERE pro_id = $pid";
+		$existAttributes = $this->getAll($attQuery);
+		$implodeAttArray = Array();
+		foreach($existAttributes as $attr)
+		{
+			$implodeAttArray[] = $attr['att_id'];
+		}
+		$arr = '"'.implode('","', $implodeAttArray).'"';//implode('","', $implodeArray);
+		
+		$sql = "DELETE from att_table where att_id IN ($arr)";
+		$this->execute($sql); 
+		
+		$valueQuery = "SELECT value_id FROM entity_table WHERE pro_id = $pid";
+		$existAttributesValue = $this->getAll($valueQuery);
+		$implodeValueArray = Array();
+		foreach($existAttributesValue as $attr_value)
+		{
+			$implodeValueArray[] = $attr_value['value_id'];
+		}
+		$arrValue = '"'.implode('","', $implodeValueArray).'"';//implode('","', $implodeArray);
+		
+		$sql = "DELETE from value_table where value_id IN ($arrValue)";
+		$this->execute($sql); 
+		
+		$entityQuery = "DELETE FROM entity_table WHERE pro_id = $pid";
+		$this->execute($entityQuery);
+	}
+	
+	function createProduct($arr,$pid)
+	{
+		$attLen = count($arr)/3;
+		$queryString = '';
+		if(empty($pid))
+		{
+			$pid = substr(Time(),5);
+		}
+		
+		for($j=$attLen;$j>=1;$j--)
+		{
+			$attribute_code = $arr["property_code_$j"];
+			$attribute_type = $arr["property_type_$j"];
+			$attribute_value = $arr["property_value_$j"];
+		
+			$queryAttString = "INSERT INTO `att_table` (attribute_code) VALUES ('$attribute_code')";
+			$att_id = $this->execute($queryAttString);
+			
+			$queryValString = "INSERT INTO `value_table` (value_type,value_item) VALUES ('$attribute_type','$attribute_value')";
+			$value_id = $this->execute($queryValString);
+			
+			$queryEnString = "INSERT INTO `entity_table` (pro_id,att_id,value_id) VALUES ('$pid','$att_id','$value_id')";
+			$en_id = $this->execute($queryEnString);
+			
+		}
 	}
 }
